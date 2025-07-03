@@ -1,0 +1,1363 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Study Planner</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: 'Orbitron', monospace;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+    
+    .container {
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(10px);
+      border-radius: 20px;
+      padding: 30px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    
+    h1 {
+      text-align: center;
+      color: #2d3748;
+      font-size: 2.5rem;
+      margin-bottom: 30px;
+      background: linear-gradient(45deg, #667eea, #764ba2);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    
+    .form-section {
+      background: white;
+      border-radius: 15px;
+      padding: 25px;
+      margin-bottom: 20px;
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+      border: 1px solid rgba(102, 126, 234, 0.1);
+    }
+    
+    .form-section h3 {
+      color: #2d3748;
+      margin-bottom: 20px;
+      font-size: 1.3rem;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    
+    .form-section h3::before {
+      content: "🎯";
+      font-size: 1.2rem;
+    }
+    
+    .form-section h3.meals::before {
+      content: "🍽️";
+    }
+    
+    .form-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 15px;
+      margin-bottom: 15px;
+    }
+    
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+    
+    label {
+      font-weight: 600;
+      color: #4a5568;
+      font-size: 0.9rem;
+    }
+
+    .day-tabs {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+
+        .day-tab {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            border: none;
+            padding: 15px 25px;
+            border-radius: 50px;
+            font-size: 1rem;
+            font-weight: 600;
+            color: #2c3e50;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            min-width: 80px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .day-tab::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            transition: left 0.3s ease;
+            z-index: -1;
+        }
+
+        .day-tab:hover::before {
+            left: 0;
+        }
+	
+        .slot.relaxation {
+            background: #e8f5e8;
+            color: #388e3c;
+        }
+
+        .day-tab:hover {
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+        }
+
+        .day-tab.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+            transform: translateY(-2px);
+        }
+
+        /* Schedule Container */
+        .day-schedule, .day-tuition-schedule {
+            display: none;
+            animation: fadeIn 0.5s ease-in-out;
+        }
+
+        .day-schedule.active, .day-tuition-schedule.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Form Styling */
+        .form-row {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            min-width: 150px;
+        }
+
+        .form-group label {
+            font-weight: 600;
+            color: #495057;
+            font-size: 0.95rem;
+        }
+
+        .form-group input[type="time"] {
+            padding: 12px 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            background: white;
+        }
+
+        .form-group input[type="time"]:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .form-group input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            accent-color: #667eea;
+        }
+
+        /* Tuition Schedule Styling */
+        .weekly-schedule {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .tuition-item {
+            background: linear-gradient(135deg, #fff5f5 0%, #fed7d7 100%);
+            border: 2px solid #e53e3e;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 15px;
+            position: relative;
+            transition: all 0.3s ease;
+        }
+
+        .tuition-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+        }
+
+        .tuition-form-row {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .tuition-form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            min-width: 120px;
+        }
+
+        .tuition-form-group label {
+            font-weight: 600;
+            color: #2d3748;
+            font-size: 0.9rem;
+        }
+
+        .tuition-form-group input, .tuition-form-group select {
+            padding: 10px 12px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            transition: all 0.3s ease;
+        }
+
+        .tuition-form-group input:focus, .tuition-form-group select:focus {
+            outline: none;
+            border-color: #e53e3e;
+            box-shadow: 0 0 0 3px rgba(229, 62, 62, 0.1);
+        }
+
+        /* Buttons */
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 50px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+            color: white;
+            box-shadow: 0 4px 15px rgba(72, 187, 120, 0.3);
+        }
+
+        .btn-secondary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(72, 187, 120, 0.4);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #e53e3e 0%, #c53030 100%);
+            color: white;
+            box-shadow: 0 4px 15px rgba(229, 62, 62, 0.3);
+            padding: 8px 16px;
+            font-size: 0.9rem;
+        }
+
+        .btn-danger:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(229, 62, 62, 0.4);
+        }
+
+        .remove-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .form-section {
+                padding: 20px;
+            }
+            
+            .day-tabs {
+                gap: 8px;
+            }
+            
+            .day-tab {
+                padding: 12px 20px;
+                min-width: 70px;
+                font-size: 0.9rem;
+            }
+            
+            .form-row {
+                flex-direction: column;
+                gap: 15px;
+            }
+            
+            .tuition-form-row {
+                flex-direction: column;
+            }
+        }
+    input, select {
+      padding: 12px 15px;
+      border: 2px solid #e2e8f0;
+      border-radius: 10px;
+      font-size: 1rem;
+      transition: all 0.3s ease;
+      background: white;
+    }
+    
+    input:focus, select:focus {
+      outline: none;
+      border-color: #667eea;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+    
+    .ai-section {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border-radius: 15px;
+      padding: 25px;
+      margin-bottom: 20px;
+    }
+    
+    .ai-section h3 {
+      color: white;
+      margin-bottom: 15px;
+    }
+    
+    .ai-toggle {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    
+    .toggle-switch {
+      position: relative;
+      width: 60px;
+      height: 30px;
+      background: rgba(255, 255, 255, 0.3);
+      border-radius: 15px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+    
+    .toggle-switch.active {
+      background: rgba(255, 255, 255, 0.6);
+    }
+    
+    .toggle-slider {
+      position: absolute;
+      top: 3px;
+      left: 3px;
+      width: 24px;
+      height: 24px;
+      background: white;
+      border-radius: 50%;
+      transition: all 0.3s ease;
+    }
+    
+    .toggle-switch.active .toggle-slider {
+      transform: translateX(30px);
+    }
+    
+    .difficulty-buttons {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    
+    .difficulty-btn {
+      padding: 10px 20px;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      background: transparent;
+      color: white;
+      border-radius: 25px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      font-weight: 600;
+    }
+    
+    .difficulty-btn.active, .difficulty-btn:hover {
+      background: rgba(255, 255, 255, 0.2);
+      border-color: rgba(255, 255, 255, 0.6);
+    }
+    
+    .subject-block, .tuition-block {
+      background: #f8fafc;
+      border-radius: 10px;
+      padding: 15px;
+      margin-bottom: 10px;
+      border: 1px solid #e2e8f0;
+    }
+    
+    .btn {
+      padding: 12px 25px;
+      border: none;
+      border-radius: 10px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      font-size: 1rem;
+    }
+    
+    .btn-primary {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
+    
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+    }
+    
+    .btn-secondary {
+      background: #e2e8f0;
+      color: #4a5568;
+    }
+    
+    .btn-secondary:hover {
+      background: #cbd5e0;
+    }
+    
+    .btn-danger {
+      background: #fc8181;
+      color: white;
+    }
+    
+    .btn-danger:hover {
+      background: #f56565;
+    }
+    
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(8, 1fr);
+      gap: 8px;
+      margin-top: 20px;
+      background: white;
+      padding: 20px;
+      border-radius: 15px;
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+    }
+    
+    .time-header {
+      font-weight: bold;
+      text-align: center;
+      padding: 10px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border-radius: 8px;
+      font-size: 0.9rem;
+    }
+    
+    .slot {
+      padding: 8px;
+      border-radius: 8px;
+      text-align: center;
+      font-size: 0.75rem;
+      font-weight: 500;
+      white-space: pre-line;
+      transition: all 0.3s ease;
+      border: 2px solid transparent;
+    }
+    
+    .slot:hover {
+      transform: scale(1.05);
+      border-color: rgba(102, 126, 234, 0.3);
+    }
+    
+    .school { background: linear-gradient(135deg, #fc8181 0%, #e53e3e 100%); color: white; }
+    .tuition { background: linear-gradient(135deg, #f6ad55 0%, #ed8936 100%); color: white; }
+    .event { background: linear-gradient(135deg, #b794f6 0%, #9f7aea 100%); color: white; }
+    .study { background: linear-gradient(135deg, #63b3ed 0%, #4299e1 100%); color: white; }
+    .sleep { background: linear-gradient(135deg, #a0aec0 0%, #718096 100%); color: white; }
+    .free { background: linear-gradient(135deg, #9ae6b4 0%, #68d391 100%); color: #2d3748; }
+    .meal { background: linear-gradient(135deg, #fbb6ce 0%, #f687b3 100%); color: white; }
+    
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 15px;
+      justify-content: center;
+      margin-top: 20px;
+      padding: 20px;
+      background: white;
+      border-radius: 15px;
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+    }
+    
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 600;
+    }
+    
+    .legend-color {
+      width: 20px;
+      height: 20px;
+      border-radius: 5px;
+    }
+    
+    .generate-btn {
+      display: block;
+      width: 100%;
+      max-width: 300px;
+      margin: 30px auto;
+      padding: 15px 30px;
+      font-size: 1.1rem;
+      font-weight: bold;
+    }
+    
+    .ai-status {
+      background: rgba(255, 255, 255, 0.2);
+      padding: 15px;
+      border-radius: 10px;
+      margin-top: 15px;
+      display: none;
+    }
+    
+    .ai-status.active {
+      display: block;
+    }
+    
+    .meal-times {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 15px;
+    }
+    
+    .meal-group {
+      background: #f7fafc;
+      padding: 15px;
+      border-radius: 10px;
+      border: 1px solid #e2e8f0;
+    }
+    
+    .meal-group h4 {
+      color: #2d3748;
+      margin-bottom: 10px;
+      font-size: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    @media (max-width: 768px) {
+      .grid {
+        grid-template-columns: repeat(4, 1fr);
+      }
+      
+      .form-row, .meal-times {
+        grid-template-columns: 1fr;
+      }
+      
+      h1 {
+        font-size: 2rem;
+      }
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+  <h1>🤖 AI Study Planner</h1>
+  
+  <div class="ai-section">
+    <h3>🧠 AI-Powered Planning</h3>
+    <div class="ai-toggle">
+      <span>Enable AI Auto-Allocation:</span>
+      <div class="toggle-switch" id="aiToggle" onclick="toggleAI()">
+        <div class="toggle-slider"></div>
+      </div>
+    </div>
+    
+    <div id="aiControls" style="display: none;">
+      <label>Study Difficulty Preference:</label>
+      <div class="difficulty-buttons">
+        <button class="difficulty-btn active" data-difficulty="balanced" onclick="setDifficulty('balanced')">Balanced</button>
+        <button class="difficulty-btn" data-difficulty="intensive" onclick="setDifficulty('intensive')">Intensive</button>
+        <button class="difficulty-btn" data-difficulty="relaxed" onclick="setDifficulty('relaxed')">Relaxed</button>
+      </div>
+      
+      <div class="ai-status" id="aiStatus">
+        <div>🎯 AI will automatically:</div>
+        <div>• Analyze your exam schedule and priorities</div>
+        <div>• Distribute study time based on subject difficulty</div>
+        <div>• Optimize learning patterns for better retention</div>
+        <div>• Balance workload to prevent burnout</div>
+        <div>• Respect meal times and avoid scheduling conflicts</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="form-section">
+    <h3>Basic Settings</h3>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Class Level:</label>
+        <select id="classLevel">
+          <option value="10">Class 10</option>
+          <option value="11">Class 11</option>
+          <option value="12">Class 12</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Wake Up Time:</label>
+        <input type="time" id="wakeUp" value="06:00">
+      </div>
+      <div class="form-group">
+        <label>Sleep Hours:</label>
+        <input type="number" id="sleepHours" value="7" min="6" max="10">
+      </div>
+    </div>
+  </div>
+
+  <div class="form-section">
+    <h3 class="meals">Meal Times</h3>
+    <div class="meal-times">
+      <div class="meal-group">
+        <h4>🌅 Breakfast</h4>
+        <div class="form-group">
+          <label>Start Time:</label>
+          <input type="time" id="breakfastStart" value="07:00">
+        </div>
+        <div class="form-group">
+          <label>End Time:</label>
+          <input type="time" id="breakfastEnd" value="07:30">
+        </div>
+      </div>
+      
+      <div class="meal-group">
+        <h4>🌞 Lunch</h4>
+        <div class="form-group">
+          <label>Start Time:</label>
+          <input type="time" id="lunchStart" value="12:30">
+        </div>
+        <div class="form-group">
+          <label>End Time:</label>
+          <input type="time" id="lunchEnd" value="13:30">
+        </div>
+      </div>
+      
+      <div class="meal-group">
+        <h4>🌙 Dinner</h4>
+        <div class="form-group">
+          <label>Start Time:</label>
+          <input type="time" id="dinnerStart" value="19:30">
+        </div>
+        <div class="form-group">
+          <label>End Time:</label>
+          <input type="time" id="dinnerEnd" value="20:30">
+        </div>
+      </div>
+    </div>
+  </div>
+<div class="form-section">
+    <h3>📚 School Schedule</h3>
+            <div class="day-tabs">
+                <button class="day-tab active" onclick="switchSchoolDay('Monday')">Mon</button>
+                <button class="day-tab" onclick="switchSchoolDay('Tuesday')">Tue</button>
+                <button class="day-tab" onclick="switchSchoolDay('Wednesday')">Wed</button>
+                <button class="day-tab" onclick="switchSchoolDay('Thursday')">Thu</button>
+                <button class="day-tab" onclick="switchSchoolDay('Friday')">Fri</button>
+                <button class="day-tab" onclick="switchSchoolDay('Saturday')">Sat</button>
+                <button class="day-tab" onclick="switchSchoolDay('Sunday')">Sun</button>
+            </div>
+            
+            <div id="schoolScheduleContainer">
+                <div class="day-schedule active" data-day="Monday">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>School Start:</label>
+                            <input type="time" class="schoolStart" value="07:00">
+                        </div>
+                        <div class="form-group">
+                            <label>School End:</label>
+                            <input type="time" class="schoolEnd" value="14:00">
+                        </div>
+                        <div class="form-group">
+                            <label>
+                                <input type="checkbox" class="schoolHoliday"> Holiday/No School
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="day-schedule" data-day="Tuesday">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>School Start:</label>
+                            <input type="time" class="schoolStart" value="07:00">
+                        </div>
+                        <div class="form-group">
+                            <label>School End:</label>
+                            <input type="time" class="schoolEnd" value="14:00">
+                        </div>
+                        <div class="form-group">
+                            <label>
+                                <input type="checkbox" class="schoolHoliday"> Holiday/No School
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="day-schedule" data-day="Wednesday">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>School Start:</label>
+                            <input type="time" class="schoolStart" value="08:00">
+                        </div>
+                        <div class="form-group">
+                            <label>School End:</label>
+                            <input type="time" class="schoolEnd" value="14:00">
+                        </div>
+                        <div class="form-group">
+                            <label>
+                                <input type="checkbox" class="schoolHoliday"> Holiday/No School
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="day-schedule" data-day="Thursday">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>School Start:</label>
+                            <input type="time" class="schoolStart" value="08:00">
+                        </div>
+                        <div class="form-group">
+                            <label>School End:</label>
+                            <input type="time" class="schoolEnd" value="14:00">
+                        </div>
+                        <div class="form-group">
+                            <label>
+                                <input type="checkbox" class="schoolHoliday"> Holiday/No School
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="day-schedule" data-day="Friday">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>School Start:</label>
+                            <input type="time" class="schoolStart" value="08:00">
+                        </div>
+                        <div class="form-group">
+                            <label>School End:</label>
+                            <input type="time" class="schoolEnd" value="14:00">
+                        </div>
+                        <div class="form-group">
+                            <label>
+                                <input type="checkbox" class="schoolHoliday"> Holiday/No School
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="day-schedule" data-day="Saturday">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>School Start:</label>
+                            <input type="time" class="schoolStart" value="08:00">
+                        </div>
+                        <div class="form-group">
+                            <label>School End:</label>
+                            <input type="time" class="schoolEnd" value="14:00">
+                        </div>
+                        <div class="form-group">
+                            <label>
+                                <input type="checkbox" class="schoolHoliday" checked> Holiday/No School
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="day-schedule" data-day="Sunday">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>School Start:</label>
+                            <input type="time" class="schoolStart" value="08:00">
+                        </div>
+                        <div class="form-group">
+                            <label>School End:</label>
+                            <input type="time" class="schoolEnd" value="14:00">
+                        </div>
+                        <div class="form-group">
+                            <label>
+                                <input type="checkbox" class="schoolHoliday" checked> Holiday/No School
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tuition Schedule Section -->
+        <div class="form-section">
+            <h3>🎓 Weekly Tuition Classes</h3>
+            <div class="weekly-schedule">
+                <div class="day-tabs">
+                    <button class="day-tab active" onclick="switchTuitionDay('Monday')">Mon</button>
+                    <button class="day-tab" onclick="switchTuitionDay('Tuesday')">Tue</button>
+                    <button class="day-tab" onclick="switchTuitionDay('Wednesday')">Wed</button>
+                    <button class="day-tab" onclick="switchTuitionDay('Thursday')">Thu</button>
+                    <button class="day-tab" onclick="switchTuitionDay('Friday')">Fri</button>
+                    <button class="day-tab" onclick="switchTuitionDay('Saturday')">Sat</button>
+                    <button class="day-tab" onclick="switchTuitionDay('Sunday')">Sun</button>
+                </div>
+                
+                <div id="tuitionScheduleContainer">
+                    <div class="day-tuition-schedule active" data-day="Monday">
+                        <div id="tuitionMondayContainer"></div>
+                        <button class="btn btn-secondary" onclick="addTuitionToDay('Monday')">+ Add Tuition</button>
+                    </div>
+                    
+                    <div class="day-tuition-schedule" data-day="Tuesday">
+                        <div id="tuitionTuesdayContainer"></div>
+                        <button class="btn btn-secondary" onclick="addTuitionToDay('Tuesday')">+ Add Tuition</button>
+                    </div>
+                    
+                    <div class="day-tuition-schedule" data-day="Wednesday">
+                        <div id="tuitionWednesdayContainer"></div>
+                        <button class="btn btn-secondary" onclick="addTuitionToDay('Wednesday')">+ Add Tuition</button>
+                    </div>
+                    
+                    <div class="day-tuition-schedule" data-day="Thursday">
+                        <div id="tuitionThursdayContainer"></div>
+                        <button class="btn btn-secondary" onclick="addTuitionToDay('Thursday')">+ Add Tuition</button>
+                    </div>
+                    
+                    <div class="day-tuition-schedule" data-day="Friday">
+                        <div id="tuitionFridayContainer"></div>
+                        <button class="btn btn-secondary" onclick="addTuitionToDay('Friday')">+ Add Tuition</button>
+                    </div>
+                    
+                    <div class="day-tuition-schedule" data-day="Saturday">
+                        <div id="tuitionSaturdayContainer"></div>
+                        <button class="btn btn-secondary" onclick="addTuitionToDay('Saturday')">+ Add Tuition</button>
+                    </div>
+                    
+                    <div class="day-tuition-schedule" data-day="Sunday">
+                        <div id="tuitionSundayContainer"></div>
+                        <button class="btn btn-secondary" onclick="addTuitionToDay('Sunday')">+ Add Tuition</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+  <div class="form-section">
+    <h3>Subjects & Exams</h3>
+    <div id="subjectContainer">
+      <div class="subject-block">
+        <div class="form-row">
+          <div class="form-group">
+            <label>Subject Name:</label>
+            <input type="text" class="subjectName" placeholder="e.g., Physics">
+          </div>
+          <div class="form-group">
+            <label>Exam Date:</label>
+            <input type="date" class="subjectDate">
+          </div>
+          <div class="form-group">
+            <label>Difficulty (1-5):</label>
+            <input type="number" class="subjectDifficulty" min="1" max="5" value="3">
+          </div>
+          <div class="form-group">
+            <button class="btn btn-danger" onclick="removeSubject(this)">Remove</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <button class="btn btn-secondary" onclick="addSubject()">+ Add Subject</button>
+  </div>
+
+  <button class="btn btn-primary generate-btn" onclick="generatePlanner()">✨ Generate AI Study Plan</button>
+
+  <div class="grid" id="planner"></div>
+
+  <div class="legend">
+    <div class="legend-item">
+      <div class="legend-color school"></div>
+      <span>School</span>
+    </div>
+    <div class="legend-item">
+      <div class="legend-color tuition"></div>
+      <span>Tuition</span>
+    </div>
+    <div class="legend-item">
+      <div class="legend-color meal"></div>
+      <span>Meals</span>
+    </div>
+    <div class="legend-item">
+      <div class="legend-color study"></div>
+      <span>Study</span>
+    </div>
+    <div class="legend-item">
+      <div class="legend-color sleep"></div>
+      <span>Sleep</span>
+    </div>
+    <div class="legend-item">
+      <div class="legend-color free"></div>
+      <span>Free Time</span>
+    </div>
+  </div>
+   </div>
+
+<script>
+let aiEnabled = false;
+let studyDifficulty = 'balanced';
+let currentDay = 'Monday';
+let currentTuitionDay = 'Monday';
+let tuitionCounter = 0;
+
+function toggleAI() {
+  const toggle = document.getElementById('aiToggle');
+  const controls = document.getElementById('aiControls');
+  const status = document.getElementById('aiStatus');
+  
+  aiEnabled = !aiEnabled;
+  toggle.classList.toggle('active');
+  
+  if (aiEnabled) {
+    controls.style.display = 'block';
+    status.classList.add('active');
+  } else {
+    controls.style.display = 'none';
+    status.classList.remove('active');
+  }
+}
+
+function setDifficulty(difficulty) {
+  studyDifficulty = difficulty;
+  document.querySelectorAll('.difficulty-btn').forEach(btn => {
+    btn.classList.remove('active');
+  });
+  document.querySelector(`[data-difficulty="${difficulty}"]`).classList.add('active');
+}
+
+
+function timeToMinutes(timeStr) {
+  const [hours, minutes] = timeStr.split(':').map(Number);
+  return hours * 60 + minutes;
+}
+
+function minutesToTime(minutes) {
+  const hours = Math.floor(minutes / 60);
+  const mins = minutes % 60;
+  return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
+}
+
+function getMealTimes() {
+  return {
+    breakfast: {
+      start: timeToMinutes(document.getElementById('breakfastStart').value),
+      end: timeToMinutes(document.getElementById('breakfastEnd').value),
+      name: 'Breakfast'
+    },
+    lunch: {
+      start: timeToMinutes(document.getElementById('lunchStart').value),
+      end: timeToMinutes(document.getElementById('lunchEnd').value),
+      name: 'Lunch'
+    },
+    dinner: {
+      start: timeToMinutes(document.getElementById('dinnerStart').value),
+      end: timeToMinutes(document.getElementById('dinnerEnd').value),
+      name: 'Dinner'
+    }
+  };
+}
+
+function isTimeSlotBlocked(startMinutes, endMinutes, blockedTimes) {
+  for (const blocked of blockedTimes) {
+    if (startMinutes < blocked.end && endMinutes > blocked.start) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function switchSchoolDay(day) {
+            // Remove active class from all school day tabs
+            document.querySelectorAll('.form-section:first-child .day-tabs .day-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Add active class to clicked tab
+            event.target.classList.add('active');
+            
+            // Hide all school day schedules
+            document.querySelectorAll('#schoolScheduleContainer .day-schedule').forEach(schedule => {
+                schedule.classList.remove('active');
+            });
+            
+            // Show selected day schedule
+            document.querySelector('#schoolScheduleContainer .day-schedule[data-day="' + day + '"]').classList.add('active');
+        }
+
+ function switchTuitionDay(day) {
+            // Remove active class from all tuition day tabs
+            document.querySelectorAll('.weekly-schedule .day-tabs .day-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Add active class to clicked tab
+            event.target.classList.add('active');
+            
+            // Hide all tuition day schedules
+            document.querySelectorAll('#tuitionScheduleContainer .day-tuition-schedule').forEach(schedule => {
+                schedule.classList.remove('active');
+            });
+            
+            // Show selected day schedule
+            document.querySelector('#tuitionScheduleContainer .day-tuition-schedule[data-day="' + day + '"]').classList.add('active');
+        }
+
+        function addTuitionToDay(day) {
+            tuitionCounter++;
+            const container = document.getElementById('tuition' + day + 'Container');
+            
+            const tuitionItem = document.createElement('div');
+            tuitionItem.className = 'tuition-item';
+            tuitionItem.innerHTML = `
+                <button class="btn btn-danger remove-btn" onclick="removeTuition(this)">×</button>
+                <div class="tuition-form-row">
+                    <div class="tuition-form-group">
+                        <label>Subject:</label>
+                        <input type="text" placeholder="Enter subject" required>
+                    </div>
+                    <div class="tuition-form-group">
+                        <label>Start Time:</label>
+                        <input type="time" required>
+                    </div>
+                    <div class="tuition-form-group">
+                        <label>End Time:</label>
+                        <input type="time" required>
+                    </div>
+                    <div class="tuition-form-group">
+                        <label>Teacher:</label>
+                        <input type="text" placeholder="Teacher name">
+                    </div>
+                    <div class="tuition-form-group">
+                        <label>Location:</label>
+                        <select>
+                            <option value="online">Online</option>
+                            <option value="home">At Home</option>
+                            <option value="center">Tuition Center</option>
+                        </select>
+                    </div>
+                </div>
+            `;
+            
+            container.appendChild(tuitionItem);
+            
+            // Add animation
+            setTimeout(() => {
+                tuitionItem.style.opacity = '1';
+                tuitionItem.style.transform = 'translateY(0)';
+            }, 10);
+        }
+
+	function removeTuition(button) {
+            const tuitionItem = button.closest('.tuition-item');
+            tuitionItem.style.opacity = '0';
+            tuitionItem.style.transform = 'translateY(-10px)';
+            
+            setTimeout(() => {
+                tuitionItem.remove();
+            }, 300);
+        }
+  function addSubject() {
+  const container = document.getElementById('subjectContainer');
+  const subjectBlock = document.createElement('div');
+  subjectBlock.className = 'subject-block';
+  subjectBlock.innerHTML = `
+    <div class="form-row">
+      <div class="form-group">
+        <label>Subject Name:</label>
+        <input type="text" class="subjectName" placeholder="e.g., Physics">
+      </div>
+      <div class="form-group">
+        <label>Exam Date:</label>
+        <input type="date" class="subjectDate">
+      </div>
+      <div class="form-group">
+        <label>Difficulty (1-5):</label>
+        <input type="number" class="subjectDifficulty" min="1" max="5" value="3">
+      </div>
+      <div class="form-group">
+        <button class="btn btn-danger" onclick="removeSubject(this)">Remove</button>
+      </div>
+    </div>
+  `;
+  container.appendChild(subjectBlock);
+}
+
+function removeSubject(btn) {
+  btn.closest('.subject-block').remove();
+}
+
+function generatePlanner() {
+    const wakeUpTime = timeToMinutes(document.getElementById('wakeUp').value);
+    const sleepHours = parseInt(document.getElementById('sleepHours').value);
+    const sleepTime = (24 * 60) - (sleepHours * 60) + wakeUpTime;
+    
+    const mealTimes = getMealTimes();
+    
+    // Get school schedule for each day
+    const schoolSchedule = {};
+    const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+    
+    days.forEach(day => {
+        const daySchedule = document.querySelector(`#schoolScheduleContainer .day-schedule[data-day="${day}"]`);
+        const isHoliday = daySchedule.querySelector('.schoolHoliday').checked;
+        
+        if (!isHoliday) {
+            const schoolStart = timeToMinutes(daySchedule.querySelector('.schoolStart').value);
+            const schoolEnd = timeToMinutes(daySchedule.querySelector('.schoolEnd').value);
+            schoolSchedule[day] = { start: schoolStart, end: schoolEnd };
+        }
+    });
+    
+    // Get tuition schedule for each day
+    const tuitionSchedule = {};
+    days.forEach(day => {
+        const dayContainer = document.getElementById(`tuition${day}Container`);
+        const tuitionItems = dayContainer.querySelectorAll('.tuition-item');
+        
+        tuitionSchedule[day] = [];
+        tuitionItems.forEach(item => {
+            const inputs = item.querySelectorAll('input');
+            const subject = inputs[0].value.trim();
+            const startTime = inputs[1].value;
+            const endTime = inputs[2].value;
+            
+            if (subject && startTime && endTime) {
+                tuitionSchedule[day].push({
+                    subject,
+                    start: timeToMinutes(startTime),
+                    end: timeToMinutes(endTime)
+                });
+            }
+        });
+    });
+    
+    // Get subjects
+    const subjects = [];
+    document.querySelectorAll('.subject-block').forEach(block => {
+        const name = block.querySelector('.subjectName').value.trim();
+        const date = block.querySelector('.subjectDate').value;
+        const difficulty = parseInt(block.querySelector('.subjectDifficulty').value);
+        if (name && date) {
+            subjects.push({ name, date, difficulty });
+        }
+    });
+    
+    // Calculate days array (next 7 days)
+    const weekDays = [];
+    const today = new Date();
+    for (let i = 0; i < 7; i++) {
+        const date = new Date(today);
+        date.setDate(today.getDate() + i);
+        weekDays.push(date.toLocaleDateString('en-US', { weekday: 'long' }));
+    }
+    
+    // Create schedule grid
+    const schedule = {};
+    const timeSlots = [];
+    
+    // Generate 30-minute time slots from wake up to sleep
+    for (let minutes = wakeUpTime; minutes < sleepTime; minutes += 30) {
+        timeSlots.push(minutes);
+    }
+    
+    // Initialize schedule
+    weekDays.forEach(day => {
+        schedule[day] = {};
+        timeSlots.forEach(slot => {
+            schedule[day][slot] = { type: 'free', content: 'Free Time' };
+        });
+    });
+    
+    // Block fixed times for all days
+    weekDays.forEach(day => {
+        timeSlots.forEach(slot => {
+            const slotEnd = slot + 30;
+            
+            // School time
+            if (schoolSchedule[day] && slot >= schoolSchedule[day].start && slot < schoolSchedule[day].end) {
+                schedule[day][slot] = { type: 'school', content: 'School' };
+            }
+            
+            // Meal times
+            Object.values(mealTimes).forEach(meal => {
+                if (slot >= meal.start && slot < meal.end) {
+                    schedule[day][slot] = { type: 'meal', content: meal.name };
+                }
+            });
+            
+            // Tuition times
+            if (tuitionSchedule[day]) {
+                tuitionSchedule[day].forEach(tuition => {
+                    if (slot >= tuition.start && slot < tuition.end) {
+                        schedule[day][slot] = { type: 'tuition', content: `${tuition.subject} Tuition` };
+                    }
+                });
+            }
+            
+            // Sleep time
+            if (slot >= sleepTime || slot < wakeUpTime) {
+                schedule[day][slot] = { type: 'sleep', content: 'Sleep' };
+            }
+        });
+    });
+    
+    // AI-powered study allocation
+    if (aiEnabled && subjects.length > 0) {
+        const studyMultipliers = {
+            relaxed: 0.5,
+            balanced: 0.7,
+            intensive: 0.9
+        };
+        
+        const multiplier = studyMultipliers[studyDifficulty];
+        
+        // Find available study slots
+        const availableStudySlots = [];
+        weekDays.forEach(day => {
+            timeSlots.forEach(slot => {
+                if (schedule[day][slot].type === 'free') {
+                    availableStudySlots.push({ day, slot });
+                }
+            });
+        });
+        
+        // Calculate study time allocation for each subject
+        const totalDifficulty = subjects.reduce((sum, s) => sum + s.difficulty, 0);
+        
+        // Sort subjects by exam date (most urgent first)
+        subjects.sort((a, b) => new Date(a.date) - new Date(b.date));
+        
+        // Allocate study time based on difficulty and urgency
+        subjects.forEach(subject => {
+            const examDate = new Date(subject.date);
+            const today = new Date();
+            const daysUntilExam = Math.ceil((examDate - today) / (1000 * 60 * 60 * 24));
+            
+            let urgencyFactor = 1;
+            if (daysUntilExam <= 3) urgencyFactor = 2.5;
+            else if (daysUntilExam <= 7) urgencyFactor = 2;
+            else if (daysUntilExam <= 14) urgencyFactor = 1.5;
+            
+            const baseSlots = Math.ceil((subject.difficulty / totalDifficulty) * availableStudySlots.length);
+            const allocatedSlots = Math.ceil(baseSlots * multiplier * urgencyFactor * 0.3);
+            
+            // Distribute study sessions across different days
+            const shuffledSlots = [...availableStudySlots].sort(() => Math.random() - 0.5);
+            
+            for (let i = 0; i < allocatedSlots && shuffledSlots.length > 0; i++) {
+                const slotIndex = shuffledSlots.findIndex(slot => 
+                    availableStudySlots.some(available => 
+                        available.day === slot.day && available.slot === slot.slot
+                    )
+                );
+                
+                if (slotIndex !== -1) {
+                    const { day, slot } = shuffledSlots[slotIndex];
+                    const availableIndex = availableStudySlots.findIndex(available => 
+                        available.day === day && available.slot === slot
+                    );
+                    
+                    if (availableIndex !== -1) {
+                        availableStudySlots.splice(availableIndex, 1);
+                        schedule[day][slot] = { 
+                            type: 'study', 
+                            content: `Study ${subject.name}` 
+                        };
+                    }
+                }
+            }
+        });
+        
+        // Add some relaxation time in remaining slots
+        const relaxationSlots = Math.min(Math.ceil(availableStudySlots.length * 0.2), 8);
+        for (let i = 0; i < relaxationSlots && availableStudySlots.length > 0; i++) {
+            const randomIndex = Math.floor(Math.random() * availableStudySlots.length);
+            const { day, slot } = availableStudySlots.splice(randomIndex, 1)[0];
+            schedule[day][slot] = { type: 'relaxation', content: 'Relaxation' };
+        }
+    }
+    
+    // Render the grid
+    renderGrid(weekDays, timeSlots, schedule);
+}
+
+function renderGrid(days, timeSlots, schedule) {
+    const grid = document.getElementById('planner');
+    grid.innerHTML = '';
+    
+    // Set grid columns
+    grid.style.gridTemplateColumns = `120px repeat(${days.length}, 1fr)`;
+    
+    // Header row
+    grid.appendChild(createCell('Time', 'time-header'));
+    days.forEach(day => {
+        grid.appendChild(createCell(day.substring(0, 3), 'time-header'));
+    });
+    
+    // Time slots
+    timeSlots.forEach(slot => {
+        const timeStr = minutesToTime(slot);
+        grid.appendChild(createCell(timeStr, 'time-header'));
+        
+        days.forEach(day => {
+            const cellData = schedule[day][slot];
+            const cell = createCell(cellData.content, `slot ${cellData.type}`);
+            grid.appendChild(cell);
+        });
+    });
+}
+
+function createCell(content, className) {
+    const cell = document.createElement('div');
+    cell.className = className;
+    cell.textContent = content;
+    return cell;
+}
+    </script>
+</body>
+</html>
